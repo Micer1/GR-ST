@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Starosta Kit</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<style>
+/* === VARIABLES === */
+:root {
+    --bg-color: #0f172a;
+    --glass-bg: rgba(30, 41, 59, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --primary: #3b82f6;
+    --primary-glow: rgba(59, 130, 246, 0.5);
+    --accent: #8b5cf6;
+    --accent-glow: rgba(139, 92, 246, 0.5);
+    --input-bg: rgba(15, 23, 42, 0.6);
+    --radius: 24px;
+    --input-height: 54px;
+    --anim-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --anim-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.light-mode {
+    --bg-color: #f8fafc;
+    --glass-bg: rgba(255, 255, 255, 0.8);
+    --glass-border: rgba(0, 0, 0, 0.05);
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --primary: #2563eb;
+    --input-bg: rgba(255, 255, 255, 0.6);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    margin: 0; padding: 20px;
+    min-height: 100vh;
+    transition: background-color 0.5s ease;
+    overflow-x: hidden;
+}
+
+/* === BACKGROUND === */
+.aurora-bg {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1;
+    overflow: hidden; pointer-events: none;
+}
+.blob {
+    position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.35;
+    animation: float 12s infinite ease-in-out;
+}
+.blob-1 { top: -10%; left: -10%; width: 50vh; height: 50vh; background: var(--primary); }
+.blob-2 { bottom: -10%; right: -10%; width: 60vh; height: 60vh; background: var(--accent); animation-delay: -6s; }
+@keyframes float { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(30px, 40px); } }
+
+.container {
+    max-width: 480px; margin: 0 auto;
+    display: flex; flex-direction: column; min-height: 90vh; justify-content: center;
+}
+
+/* === GLASS CARD === */
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    padding: 24px; margin-bottom: 20px;
+    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.3);
+}
+
+/* === LOGIN SCREEN === */
+.login-header { text-align: center; margin-bottom: 30px; animation: fadeIn 0.8s ease; }
+.login-header h1 { margin: 10px 0 5px; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
+.login-header p { margin: 0; color: var(--text-muted); font-size: 14px; }
+
+.section-label {
+    font-size: 12px; font-weight: 700; color: var(--primary);
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;
+}
+
+/* DEPT BUTTONS */
+.dept-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 0;
+}
+.dept-btn {
+    padding: 18px 0; border: 2px solid var(--glass-border); border-radius: 16px;
+    background: var(--input-bg); color: var(--text-main); font-weight: 700; font-size: 15px;
+    cursor: pointer; transition: all 0.3s var(--anim-spring);
+}
+.dept-btn:hover { transform: translateY(-2px); border-color: var(--primary); }
+.dept-btn:active { transform: scale(0.95); }
+.dept-btn.active {
+    background: var(--primary); color: white; border-color: var(--primary);
+    box-shadow: 0 8px 20px var(--primary-glow);
+}
+
+/* ANIMATIONS */
+.anim-wrapper {
+    display: grid; grid-template-rows: 0fr; opacity: 0;
+    transition: grid-template-rows 0.5s var(--anim-smooth), opacity 0.5s ease, margin 0.5s ease;
+    margin-top: 0;
+}
+.anim-wrapper.open { grid-template-rows: 1fr; opacity: 1; margin-top: 24px; }
+.anim-inner { overflow: hidden; }
+
+/* INPUTS & SELECTS */
+.pixel-select, .pixel-input {
+    width: 100%; height: var(--input-height);
+    background: var(--input-bg); border: 2px solid var(--glass-border);
+    border-radius: 16px; color: var(--text-main); font-size: 16px; font-weight: 500;
+    padding: 0 16px; outline: none; appearance: none;
+    transition: 0.3s;
+}
+.pixel-select {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 16px center;
+}
+.pixel-input:focus, .pixel-select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-glow); }
+
+/* NEW: BUTTON INSIDE INPUT */
+.input-wrapper { position: relative; width: 100%; }
+.input-icon-btn {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: var(--primary); border: none; border-radius: 10px;
+    width: 32px; height: 32px; color: white; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+.input-icon-btn:hover { transform: translateY(-50%) scale(1.1); }
+.input-icon-btn:active { transform: translateY(-50%) scale(0.95); }
+
+/* DATE GRID */
+.date-grid {
+    display: grid; grid-template-columns: 0.8fr 2fr 1fr; gap: 10px;
+}
+
+/* START BUTTON & BOTTOM ACTIONS */
+.btn-wrapper {
+    display: grid; grid-template-rows: 0fr; opacity: 0;
+    transition: grid-template-rows 0.5s var(--anim-smooth), opacity 0.5s ease, margin 0.5s ease;
+}
+.btn-wrapper.visible { grid-template-rows: 1fr; opacity: 1; margin-top: 24px; }
+
+.actions-bar {
+    position: fixed; bottom: 20px; left: 20px; right: 20px; z-index: 50;
+    display: flex; gap: 10px; max-width: 480px; margin: 0 auto;
+}
+
+.start-btn {
+    width: 100%; height: 60px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-glow));
+    border: none; border-radius: 18px;
+    color: white; font-size: 16px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    cursor: pointer; box-shadow: 0 10px 25px var(--primary-glow);
+    transition: transform 0.2s; flex: 1;
+}
+.start-btn.secondary {
+    background: linear-gradient(135deg, var(--accent), #7c3aed);
+    box-shadow: 0 10px 25px var(--accent-glow);
+}
+.start-btn:active { transform: scale(0.97); }
+
+/* APP SCREEN */
+.app-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.schedule-item { margin-bottom: 16px; border-bottom: 1px solid var(--glass-border); padding-bottom: 16px; }
+.student-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--glass-border); }
+.item-label { font-size: 11px; color: var(--primary); font-weight: 800; margin-bottom: 8px; display: block; }
+
+/* UTILS */
+.hidden { display: none !important; }
+.fade-in { animation: fadeIn 0.6s ease backwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: rgba(15, 23, 42, 0.95); color: white; padding: 12px 24px; border-radius: 50px;
+    font-size: 14px; opacity: 0; transition: 0.3s; z-index: 100; border: 1px solid var(--glass-border);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* SWITCH */
+.switch { position: relative; width: 46px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--input-bg); border-radius: 34px; transition: .3s; }
+.slider:before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .3s; }
+input:checked + .slider { background: var(--primary); }
+input:checked + .slider:before { transform: translateX(22px); }
+
+/* DETAILS */
+.student-details { height: 0; overflow: hidden; transition: height 0.3s ease; background: rgba(0,0,0,0.1); border-radius: 12px; margin-top: 4px; }
+.details-content { padding: 12px; }
+.chips { display: flex; gap: 5px; margin-top: 10px; }
+.chip-lbl { flex: 1; }
+.chip-div { height: 40px; display: flex; align-items: center; justify-content: center; background: var(--input-bg); border-radius: 8px; font-weight: 600; border: 1px solid transparent; transition: 0.2s; }
+.chip-lbl input:checked + .chip-div { background: var(--primary); color: white; border-color: var(--primary); }
+
+</style>
+</head>
+<body>
+
+<div class="aurora-bg">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+</div>
+
+<div id="toast" class="toast">Повідомлення</div>
+
+<div class="container">
+
+    <div id="loginScreen">
+        
+        <div class="login-header">
+            <span class="material-icons-round" style="font-size: 60px; color: var(--primary); filter: drop-shadow(0 0 15px var(--primary-glow));">school</span>
+            <h1>QuickRaport</h1>
+            <p>Система генерації рапортичок</p>
+        </div>
+
+        <div class="glass-card fade-in">
+            
+            <div class="section-label">Оберіть відділення</div>
+            <div class="dept-grid">
+                <button class="dept-btn" onclick="selectDept('KI', this)">КІ</button>
+                <button class="dept-btn" onclick="selectDept('RZ', this)">РЗ</button>
+                <button class="dept-btn" onclick="selectDept('ІТ', this)">ІТ</button>
+            </div>
+
+            <div id="groupAnimWrapper" class="anim-wrapper">
+                <div class="anim-inner">
+                    <div class="section-label" style="margin-top: 10px;">Оберіть групу</div>
+                    <select id="groupSelect" class="pixel-select" onchange="checkGroup()">
+                        <option value="" disabled selected>— Список груп —</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="btnAnimWrapper" class="btn-wrapper">
+                <div class="anim-inner">
+                    <button class="start-btn" onclick="enterApp()">
+                        Почати <span class="material-icons-round">arrow_forward</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="appScreen" class="hidden fade-in">
+        <div class="app-header">
+            <div>
+                <h2 id="headerTitle" style="margin:0; font-size:22px;">Група</h2>
+                <div id="headerSubtitle" style="font-size:13px; color:var(--text-muted);">Панель управління</div>
+            </div>
+            <button onclick="toggleTheme()" style="background:none; border:none; color:var(--text-main); cursor:pointer;">
+                <span class="material-icons-round" id="themeIcon" style="font-size:28px;">light_mode</span>
+            </button>
+        </div>
+
+        <div class="glass-card">
+            <div class="section-label"><span class="material-icons-round" style="font-size:14px; vertical-align:middle;">tune</span> Дата та Режим</div>
+            <div class="date-grid">
+                <input type="number" id="dayInput" class="pixel-input" placeholder="ДД">
+                <select id="monthInput" class="pixel-select" style="text-align:left;">
+                    <option value="0">Січень</option><option value="1">Лютий</option>
+                    <option value="2">Березень</option><option value="3">Квітень</option>
+                    <option value="4">Травень</option><option value="5">Червень</option>
+                    <option value="6">Липень</option><option value="7">Серпень</option>
+                    <option value="8">Вересень</option><option value="9">Жовтень</option>
+                    <option value="10">Листопад</option><option value="11">Грудень</option>
+                </select>
+                <input type="number" id="yearInput" class="pixel-input" placeholder="РРРР">
+            </div>
+
+            <div style="margin-top:15px;">
+                <input type="file" id="fileUpload" accept=".xlsx" style="display:none" onchange="handleFileUpload(this)">
+                
+                <button class="dept-btn" style="width:100%; display:flex; align-items:center; justify-content:center; gap:10px;" 
+                        id="uploadBtn" onclick="document.getElementById('fileUpload').click()">
+                    <span class="material-icons-round">upload_file</span>
+                    <span id="uploadBtnText">Маю файл (Заповнити Праву)</span>
+                </button>
+
+                <div id="fileStatus" style="text-align:center; font-size:12px; color:var(--text-muted); margin-top:8px;">
+                    Режим: <b>Новий файл (Ліва сторона)</b>
+                </div>
+            </div>
+            <input type="hidden" id="sideVal" value="left">
+        </div>
+
+        <div class="glass-card">
+            <div class="section-label"><span class="material-icons-round" style="font-size:14px; vertical-align:middle;">schedule</span> Розклад</div>
+            <div id="scheduleContainer"></div>
+        </div>
+
+        <div class="glass-card" style="padding-bottom:100px;">
+            <div class="section-label"><span class="material-icons-round" style="font-size:14px; vertical-align:middle;">people</span> Студенти</div>
+            <div id="studentsContainer"></div>
+        </div>
+
+        <div class="actions-bar">
+            <button class="start-btn" onclick="generateExcel()">
+                <span class="material-icons-round">download</span> Завантажити
+            </button>
+            <button class="start-btn secondary" onclick="sendToDept()">
+                <span class="material-icons-round">send</span> Надіслати
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// === EMAILS CONFIG ===
+const deptEmails = {
+    "KI": "email_ki@example.com", 
+    "RZ": "email_rz@example.com",
+    "ІТ": "email_rt@example.com"
+};
+
+// ВАШ ШАБЛОН (НЕ ЗАБУДЬ ВСТАВИТИ ЙОГО СЮДИ ЗНОВУ)
+const templateBase64 = ""; 
+
+const groupsDB = {
+    "KI": {
+        "91": { name: "Група 91 (КІ)", startYear: 2025, students: ["Аніщенко О.М.", "Бараусов Д.О.", "Баторик А.А.", "Галецький В.А.", "Гридньов М.А.", "Демченко О.В.", "Долженко Д.С.", "Капля К.О.", "Кравченко О.П.", "Курганський А.О.", "Ланний А.В.", "Майор А.Р.", "Максименко Д.О.", "Могилка М.Д.", "Морус А.А.", "Нікульшина П.О.", "Носуля О.Г.", "Олещенко Р.А.", "Орешкин А.В.", "Свєженцева В.М.", "Соловйов Г.В.", "Струнін Е.М.", "Тюкова Н.С.", "Шрамко А.І."] },
+        "90": { name: "Група 90 (КІ)", startYear: 2025, students: ["Бермес О.В.", "Богдан А.А.", "Букрєєв П.Ю.", "Гришенко Я.А.", "Дударєв Т.І.", "Єлін М.С.", "Зелецький Д.Р.", "Зима М.В.", "Іванов Н.М.", "Калантаєвський В.В.", "Камишанський К.С.", "Канівець М.Д.", "Красільна С.С.", "Мазуркевич І.І.", "Мосьпан Т.С.", "Носенко Н.С.", "Остапенко А.Д.", "Плітка Д.С.", "Покулита К.А.", "Романов Д.М.", "Самойлович К.Ю.", "Сахаров Р.Д.", "Старина Д.Є.", "Чумаков Д.С.", "Шамрай В.О."] },
+        "86": { name: "Група 86 (КІ)", startYear: 2024, students: ["Аверченкова С.С.","Аніщенко Є.М.","Білик А.Д.","Богданов М.О.","Гоняєв Я.К.","Горелов Я.А.","Грек М.В.","Дмитрієв Г.О.","Довганенко В.О.","Жигай М.Д.","Калюжна П.Д.","Карпусенко Н.А.","Кібенко М.Р.","Корнєв Д.О.","Криковлюк К.С.","Махоня Є.Д.","Нечипоренко І.Ю.","Німченко Б.С.","Омельченко Р.В.","Пільгуй К.М.","Позивай Є.Є.","Руденко Г.В.","Циганков В.Г.","Чорний Н.Ю.","Щербань К.Д."] },
+        "85": { name: "Група 85 (КІ)", startYear: 2024, students: ["Білей М.Д.","Бондарець М.Р.","Гаркуша Р.С.","Демченко В.А.","Євстратенко І.В.","Зайченко Я.П.","Кирпа Г.С.","Клименко С.О.","Колесов М.В.","Колісніченко І.Б.","Кривенко М.О.","Ледньов Є.О.","Масалова В.М.","Мурзін Т.Б.","Нетудихата Б.С.","Письменний Т.Р.","Піньковський А.Р.","Самарець І.Д.","Сидоренко О.С.","Скляренко Р.І.","Ткаченко В.М.","Третяк Г.П.","Шеремет Д.С.","Шкуренко П.К.","Шульга О.Г."] },
+        "80": { name: "Група 80 (КІ)", startYear: 2023, students: ["Александров І.П.","Білявський Е.В.","Ведмеденко М.В.","Голофієвський В.А.","Грибенка К.І.","Данилов А.С.","Денисенко О.Є.","Дорошенко Д.С.","Дрикін Д.В.","Дяченко М.О.","Жигалкін Є.А.","Зєлєнін А.В.","Зенченко А.О.","Корсун М.О.","Кузьменко Б.С.","Лінський В.Д.","Лук’яненко С.О.","Нечта Н.О.","Пугачов Д.І.","Різниченко В.Є.","Ромащенко А.В.","Свита Д.С.","Семисал Г.О.","Стрельцов В.В.","Чирва В.І."] },
+        "79": { name: "Група 79 (КІ)", startYear: 2023, students: ["Айвазян Д.А.","Балюра І.С.","Балюра К.С.","Вахно Д.О.","Дяченко І.С.","Защолкін Р.О.","Кирпа Р.Р.","Копачова А.Е.","Кузеванов К.П.","Мирошник І.А.","Міхальов Д.В.","Носко М.М.","Носко Т.М.","Олійник А.О.","Рудський Р.В.","Сарданов А.Ю.","Сємєйко Є.М.","Сіпаков М.Д.","Скрицький В.О.","Сорокопуд В.О.","Сосніцький А.С.","Тихоненко Я.Ю.","Феоктістов І.Д.","Шевченко С.В.","Шереметьєв М.О."] } },
+    "RZ": {
+    },
+    "ІТ": {
+        "87": { name: "Група 87 (ІТ)", startYear: 2025, students: ["Білокопитов О.С.","Бондюк М.С.","Брикалін О.С.","Бриндін О.О.","Глазичева Г.В.","Горбенко О.С.","Динисюк М.М.","Догонов Д.В.","Догонов І.В.","Єгоров Т.Д.","Карпіков А.А.","Ковалдін Д.О.","Мирошниченко Є.С.","Міняйло Б.Р.","Москаленко В.П.","Новак М.В.","Павлюк П.О.","Паскалов Д.О.","Пересунько А.О.","Петренко П.К.","Подобєдов А.К.","Порхун О.А.","Самойленко В.І.","Таран М.С.","Тертишник О.О.","Тимошенко О.А.","Торянський М.С.","Шевцов Д.В."] },
+        "82": { name: "Група 82 (ІТ)", startYear: 2024, students: ["Білик А.А.","Будник Б.О.","Дудкін М.С.","Євдошенко М.О.","Єршов Л.М.","Журіков М.С.","Карповець І.А.","Козар Р.Г.","Коломоєць Н.О.","Коротаєв Л.В.","Косяченко А.В.","Лємягов Д.М.","Лисичний В.А.","Литвин Д.І.","Лук’яненко В.М.","Мартинов І.О.","Мисик В.А.","Новосьолова В.А.","Парушкін Д.О.","Петрук К.Г.","Семенець Р.А.","Сушко М.М.","Терещенко М.А.","Цирулик А.С.","Шеремєтов М.І.","Юрчук Б.М.","Якубенко Д.А."] },
+        "81": { name: "Група 81 (ІТ)", startYear: 2024, students: ["Бойко М.В.","Гапоченко І.А.","Головін А.О.","Загородній М.В.","Заозірний І.А.","Іващенко К.О.","Іллензеєр Д.О.","Карасєвич М.О.","Коваленко Г.О.","Ковальчук М.С.","Кордін І.О.","Мартиненко Є.Р.","Матвієнко І.О.","Мота Н.А.","Панков Р.Д.","Пилипенко Л.М.","Савенко В.А.","Сиваш Т.Т.","Сірий Д.С.","Солощенко Г.О.","Солтан-Шварц В.О.","Тарасюк В.Д.","Тацуля Д.О.","Ходос Д.О.","Швагер Є.М.","Шпак М.О.","Яценко А.Р."] },
+        "76": { name: "Група 76 (ІТ)", startYear: 2023, students: ["Басалаєв Д.В.","Валентіров А.О.","Гладкий Є.Р.","Гребенюк Н.П.","Димарьов К.О.","Єфімов О.К.","Кагала І.А.","Кононенко Р.Ю.","Корольков Б.О.","Костюченко О.С.","Кудін М.О.","Кузнецов В.І.","Ластовін М.В.","Листопад Н.В.","Мальований М.В.","Марініч А.І.","Олефіров Я.Д.","Отінов М.Д.","Панкратов Д.М.","Сівцов М.О.","Скоробогатько М.Д.","Смольянін М.С.","Стрижко М.С.","Трофимов О.К.","Шаклін О.О.","Шпак Д.Е."] },
+        "75": { name: "Група 75 (ІТ)", startYear: 2023, students: ["Бурлаков Б.В.","Годунов Д.О.","Долгов І.О.","Доценко Д.Р.","Кряшко Я.Я.","Лисаков А.А.","Лігачов Є.А.","Матвієвич С.О.","Мізинчук Д.Д.","Мокряк А.С.","Мотрич І.Є.","Овчаренко Д.О.","Півторацький О.С.","Румянцева К.О.","Семиліт І.Є.","Сівірюк Я.А.","Удовіков Н.І.","Усенко М.Ю.","Черкашин О.С.","Шуляк К.Д."] },
+        "70": { name: "Група 70 (ІТ)", startYear: 2022, students: ["Бережний М.А.","Ващук К.М.","Гетьман О.С.","Деменко Я.В.","Журавель Д.А.","Залогін П.К.","Іванов Г.А.","Кисель Д.Я.","Коваленко М.Д.","Курєгян А.В.","Лебедєв М.О.","Настобурка С.І.","Павлов М.В.","Подорванов Д.В.","Прибиток Д.В.","Прудченко О.Д.","Ражда М.В.","Сошенков М.С.","Строчка Д.Р.","Сундарцев К.С.","Тимощенко Я.Р.","Ткаченко Д.В.","Шаповалов І.Е.","Щербина М.О.","Яловенко М.О."] },
+        "69": { name: "Група 69 (ІТ)", startYear: 2022, students: ["Богданова А.Д.","Буданов Д.І.","Гонтар Д.Д.","Денисов В.Р.","Дусик В.О.","Кайстря А.С.","Коваленко Д.О.","Кряж Б.С.","Кулак А.О.","Марченко Н.В.","Михайленко М.С.","Перекопський В.М.","Потягайло Д.Є.","Соломена Є.В.","Солопов Д.Є.","Сушко І.М.","Тимошенко Я.В.","Фоменко В.В.","Швайдак І.К.","Якименко Т.В."] } },
+};
+
+const curriculumDB = {
+   1: {
+       "Українська мова": "Каліста Ю.В.",
+       "Історія України": "Домніна Г.С.",
+       "Українська література": "Сесь О.В.",
+       "Громадянська освіта": "Юшин П.Б.",
+       "Математика": "Коваль І.А.",
+       "Хімія": "Кондратова О.О.",
+       "Біологія і екологія": "Кондратова О.О.",
+       "Фізика і астрономія": "Махинько С.В.",
+       "Фізична культура": "Філіппов Д.В.",
+       "Інформатика": "Житченко І.М.",
+       "Географія": "Шеремет Н.М.",
+       "Іноземна мова": "Токарєва О.В."},
+   2: {
+       "Комп'ютерні технології": "Гончаров О.М.",
+       "Іноземна мова": "Токарєва О.В.",
+       "Фізика і астрономія": "Карпова Л.М.",
+       "Технології (М2 'Креслення')": "Васильченко І.І.",
+       "Теорія кіл": "Чорний О.А.",
+       "Фізична культура": "Філіппов Д.В.",
+       "Інформатика": "Житченко І.М.",
+       "Технології (М1 'Основи')": "Андрєєв В.О.",
+       "Українська література": "Прощенко І.М.",
+       "Біологія і екологія": "Шайтанова О.М.",
+       "Математика Алгебра": "Коваль І.А.",
+       "Історія України": "Домніна Г.С.",
+       "Українська мова": "Прощенко І.М.",
+       "Технології(М3)": "Олійник О.Ю./Васильченко І.І.",
+       "Вища математика": "Гончаров О.М.",
+       "Комп'ютерна логіка": "Вороніна С.В.",
+       "Основи алгоритмів": "Грабовчак Т.В."},
+   3:{ "Бази даних": "Гончаров О.М.", "Веб-дизайн": "Невідомий В.В.", "Філософія": "Мудрий І.І." },
+   4:{ 
+       "Пошир. радіохвиль та АФП": "Валявський В.В.",
+       "Фізичне виховання": "Шапошникова О.І.",
+       "Іноземна мова": "Токарєва О.В. / Гребенюк А.А.",
+       "Ел. вимірювання": "Медведєва Л.С.",
+       "Цифрова обробка": "Чорний О.А.",
+       "Пристрої прий. та передачі": "Медведєва Л.С.",
+       "Конструювання і тех.": "Кондратов О.В.",
+       "Комп'ютерна практика": "Житченко І.М./Грабовчак Т.В."},
+};
+
+const reasons = ["","нем.світл","нем.інт.","захворів","сім. обст.","без пов.прич.","інд.","хворіє","у лікаря","на конкурсі","техн. пробл."];
+const monthNames = ["Січня", "Лютого", "Березня", "Квітня", "Травня", "Червня", "Липня", "Серпня", "Вересня", "Жовтня", "Листопада", "Грудня"];
+
+let currentDept = null;
+let currentGroup = null;
+let currentCourse = 1;
+let currentTeachers = {};
+let uploadedWorkbookBuffer = null;
+let rowTeacherOptions = {}; // Для збереження варіантів вчителів
+
+// === LOGIC ===
+
+function selectDept(dept, btn) {
+    currentDept = dept;
+    document.querySelectorAll('.dept-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const select = document.getElementById('groupSelect');
+    select.innerHTML = '<option value="" disabled selected>— Оберіть групу —</option>';
+    
+    if (groupsDB[dept]) {
+        Object.keys(groupsDB[dept]).forEach(id => {
+            const opt = document.createElement('option');
+            opt.value = id; opt.innerText = groupsDB[dept][id].name;
+            select.appendChild(opt);
+        });
+        document.getElementById('groupAnimWrapper').classList.add('open');
+        document.getElementById('btnAnimWrapper').classList.remove('visible');
+    }
+}
+
+function checkGroup() {
+    const val = document.getElementById('groupSelect').value;
+    if(val) document.getElementById('btnAnimWrapper').classList.add('visible');
+}
+
+function calculateCourse(startYear) {
+    const today = new Date();
+    const academicYearStart = (today.getMonth() < 8) ? today.getFullYear() - 1 : today.getFullYear();
+    return Math.max(1, Math.min(4, (academicYearStart - startYear) + 1));
+}
+
+function enterApp() {
+    const groupKey = document.getElementById('groupSelect').value;
+    if(!groupKey) return;
+    
+    currentGroup = groupsDB[currentDept][groupKey];
+    currentCourse = calculateCourse(currentGroup.startYear);
+    currentTeachers = curriculumDB[currentCourse] || {};
+    
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('appScreen').classList.remove('hidden');
+    document.getElementById('headerTitle').innerText = currentGroup.name;
+    document.getElementById('headerSubtitle').innerText = `${currentCourse} курс • ${Object.keys(currentTeachers).length} предметів`;
+
+    // Init Date
+    const d = new Date();
+    document.getElementById('dayInput').value = d.getDate();
+    document.getElementById('monthInput').value = d.getMonth();
+    document.getElementById('yearInput').value = d.getFullYear();
+    
+    renderSchedule();
+    renderStudents();
+}
+
+function renderSchedule() {
+    const container = document.getElementById('scheduleContainer');
+    container.innerHTML = '';
+    for (let i = 0; i <= 4; i++) {
+        container.innerHTML += `
+            <div class="schedule-item">
+                <span class="item-label">${i} ПАРА</span>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <select id="subj_${i}" class="pixel-select" onchange="autoTeacher(${i})">
+                        <option value="">— Предмет —</option>
+                        ${Object.keys(currentTeachers).map(s => `<option value="${s}">${s}</option>`).join("")}
+                        <option value="custom">Інше...</option>
+                    </select>
+                    
+                    <div class="input-wrapper">
+                        <input id="teach_${i}" class="pixel-input" placeholder="Викладач" style="padding-right: 40px;">
+                        <button id="swap_btn_${i}" onclick="cycleTeacher(${i})" class="input-icon-btn hidden" title="Змінити викладача">
+                            <span class="material-icons-round" style="font-size: 18px;">swap_horiz</span>
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+    }
+}
+
+function autoTeacher(i) {
+    const subjVal = document.getElementById(`subj_${i}`).value;
+    const teachEl = document.getElementById(`teach_${i}`);
+    const swapBtn = document.getElementById(`swap_btn_${i}`);
+    
+    // Скидаємо збережені опції
+    rowTeacherOptions[i] = [];
+
+    if (currentTeachers[subjVal]) {
+        const rawTeachers = currentTeachers[subjVal];
+        
+        // Перевіряємо, чи є слеш у назві (кілька вчителів)
+        if (rawTeachers.includes('/')) {
+            const options = rawTeachers.split('/').map(t => t.trim());
+            rowTeacherOptions[i] = options;
+            
+            teachEl.value = options[0]; // Ставимо першого
+            swapBtn.classList.remove('hidden'); // Показуємо кнопку
+            showToast(`Знайдено ${options.length} викладачів. Тисніть стрілки для зміни.`);
+        } else {
+            teachEl.value = rawTeachers;
+            swapBtn.classList.add('hidden');
+        }
+
+        // Auto-check students logic
+        currentGroup.students.forEach((_, idx) => {
+            const checkbox = document.querySelector(`.p${idx}[value="${i}"]`);
+            if(checkbox) checkbox.checked = true;
+        });
+        
+    } else if (subjVal !== "custom") {
+        teachEl.value = "";
+        swapBtn.classList.add('hidden');
+    } else {
+        swapBtn.classList.add('hidden');
+    }
+}
+
+function cycleTeacher(i) {
+    const currentVal = document.getElementById(`teach_${i}`).value;
+    const options = rowTeacherOptions[i];
+    
+    if (options && options.length > 1) {
+        let idx = options.indexOf(currentVal);
+        // Якщо поточне значення не знайдено (користувач змінив вручну), починаємо з 0
+        if (idx === -1) idx = -1;
+        
+        const nextIdx = (idx + 1) % options.length;
+        document.getElementById(`teach_${i}`).value = options[nextIdx];
+    }
+}
+
+function renderStudents() {
+    const container = document.getElementById('studentsContainer');
+    container.innerHTML = '';
+    currentGroup.students.forEach((s, i) => {
+        container.innerHTML += `
+            <div class="student-item">
+                <span class="student-name">${s}</span>
+                <label class="switch">
+                    <input type="checkbox" id="chk_${i}" onchange="toggleDetails(${i})">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="student-details" id="det_${i}">
+                <div class="details-content">
+                    <select id="reason_${i}" class="pixel-select" style="margin-bottom:10px; height:44px;">
+                        ${reasons.map(r => `<option>${r}</option>`).join("")}
+                    </select>
+                    <div class="chips">
+                        ${[0,1,2,3,4].map(p => `
+                            <label class="chip-lbl">
+                                <input type="checkbox" class="p${i}" value="${p}" style="display:none">
+                                <div class="chip-div">${p}</div>
+                            </label>`).join('')}
+                    </div>
+                </div>
+            </div>`;
+    });
+}
+
+function toggleDetails(i) {
+    const el = document.getElementById(`det_${i}`);
+    const isChecked = document.getElementById(`chk_${i}`).checked;
+    el.style.height = isChecked ? (el.scrollHeight + "px") : "0px";
+}
+
+function toggleTheme() {
+    document.body.classList.toggle('light-mode');
+}
+
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.innerText = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// === EXCEL LOGIC ===
+
+// Завантаження файлу
+function handleFileUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        uploadedWorkbookBuffer = e.target.result;
+        
+        // Оновлюємо інтерфейс
+        document.getElementById('uploadBtn').classList.add('active');
+        document.getElementById('uploadBtnText').innerText = "Файл завантажено! (Скинути)";
+        document.getElementById('uploadBtn').setAttribute('onclick', 'resetFile()');
+        document.getElementById('fileStatus').innerHTML = `Файл: ${file.name}<br>Режим: <b style="color:var(--accent)">Доповнення (Права сторона)</b>`;
+        
+        showToast("📂 Файл прийнято! Заповнюємо праву сторону.");
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function resetFile() {
+    uploadedWorkbookBuffer = null;
+    document.getElementById('fileUpload').value = "";
+    
+    document.getElementById('uploadBtn').classList.remove('active');
+    document.getElementById('uploadBtnText').innerText = "Маю файл (Заповнити Праву)";
+    document.getElementById('uploadBtn').setAttribute('onclick', "document.getElementById('fileUpload').click()");
+    document.getElementById('fileStatus').innerHTML = "Режим: <b>Новий файл (Ліва сторона)</b>";
+    
+    showToast("↺ Режим скинуто на створення нового файлу.");
+}
+
+function base64ToArrayBuffer(base64) {
+    const binaryString = window.atob(base64.replace(/\s/g, ''));
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) { bytes[i] = binaryString.charCodeAt(i); }
+    return bytes.buffer;
+}
+
+function setCellStyle(cell, isBold) {
+    cell.font = { name: "Times New Roman", size: 11, bold: isBold };
+}
+
+async function generateExcel() {
+  if (!uploadedWorkbookBuffer && !templateBase64) { 
+      showToast("❌ Помилка: Немає шаблону!"); return; 
+  }
+  
+  showToast("⏳ Обробка даних...");
+
+  try {
+      // ЛОГІКА ВИБОРУ СТОРОНИ
+      const isExistingFile = !!uploadedWorkbookBuffer;
+      const side = isExistingFile ? 'right' : 'left';
+      
+      const cols = {
+          header:   side === 'left' ? "A2" : "K2",
+          subject:  side === 'left' ? "B"  : "L",
+          teacher:  side === 'left' ? "C"  : "M",
+          grades:   side === 'left' ? ["C","D","E","F","G"] : ["M","N","O","P","Q"], 
+          total:    side === 'left' ? "H"  : "R"
+      };
+
+      const wb = new ExcelJS.Workbook();
+      
+      let buffer;
+      if (isExistingFile) {
+          buffer = uploadedWorkbookBuffer;
+      } else {
+          buffer = base64ToArrayBuffer(templateBase64);
+      }
+      
+      await wb.xlsx.load(buffer);
+      const ws = wb.getWorksheet(1);
+      
+      const day = document.getElementById('dayInput').value;
+      const monthIdx = document.getElementById('monthInput').value;
+      const yearFull = document.getElementById('yearInput').value;
+      const groupNameOnly = currentGroup.name.replace(/\D/g,''); 
+      const monthStr = monthNames[monthIdx];
+      const yearPrefix = yearFull.toString().substring(0, 2); 
+      const yearSuffix = yearFull.toString().substring(2, 4);
+
+      const fontBase = { name: 'Times New Roman', size: 10 };
+      const fontUnder = { name: 'Times New Roman', size: 10, underline: true };
+      const fontBoldItalic = { name: 'Times New Roman', size: 10, bold: true, italic: true };
+      const fontBoldItalicUnder = { name: 'Times New Roman', size: 10, bold: true, italic: true, underline: true };
+
+      // Заповнюємо шапку
+      ws.getCell(cols.header).value = {
+        richText: [
+          { text: '"', font: fontBase }, { text: '  ' + day + '  ', font: fontUnder }, 
+          { text: '"   ', font: fontBase }, { text: '   ' + monthStr, font: fontUnder }, 
+          { text: ' ', font: fontBase }, { text: yearPrefix, font: fontBoldItalic },
+          { text: yearSuffix, font: fontBoldItalicUnder }, { text: ' р.  Гр. №', font: fontBase }, 
+          { text: '  ' + groupNameOnly + '  ', font: fontUnder }, { text: '.', font: fontBase }
+        ]
+      };
+
+      // === ЗАПОВНЕННЯ ПРЕДМЕТІВ ===
+      const rowMap = {0:4, 1:5, 2:6, 3:7, 4:8}; 
+      for (let i = 0; i <= 4; i++) {
+        const subjVal = document.getElementById(`subj_${i}`).value;
+        const teachVal = document.getElementById(`teach_${i}`).value;
+        
+        if (subjVal || teachVal) {
+            ws.getCell(`${cols.subject}${rowMap[i]}`).value = subjVal;
+            ws.getCell(`${cols.teacher}${rowMap[i]}`).value = teachVal;
+        }
+      }
+
+      // === ЗАПОВНЕННЯ СТУДЕНТІВ (Оновлена логіка) ===
+      let row = 11; 
+      currentGroup.students.forEach((s, i) => {
+        if(document.getElementById(`chk_${i}`).checked){
+          const reason = document.getElementById(`reason_${i}`).value;
+          
+          // Ім'я + Причина (Без центрування)
+          const nameCell = ws.getCell(`${cols.subject}${row}`);
+          
+          if (reason && reason !== "") {
+              nameCell.value = `${s} (${reason})`;
+          } else {
+              nameCell.value = s;
+          }
+
+          setCellStyle(nameCell, false);
+
+          // Оцінки (З центруванням)
+          let hours = 0;
+          document.querySelectorAll(`.p${i}:checked`).forEach(p => {
+            const colLetter = cols.grades[p.value];
+            if (colLetter) {
+                const gradeCell = ws.getCell(`${colLetter}${row}`);
+                gradeCell.value = "2";
+                setCellStyle(gradeCell, true);
+                gradeCell.alignment = { horizontal: "center", vertical: "middle" };
+                hours += 2;
+            }
+          });
+
+          // Сума (З центруванням)
+          const totalCell = ws.getCell(`${cols.total}${row}`);
+          totalCell.value = hours;
+          setCellStyle(totalCell, true);
+          totalCell.alignment = { horizontal: "center", vertical: "middle" };
+          
+          row++;
+        }
+      });
+
+      const outBuf = await wb.xlsx.writeBuffer();
+      
+      let fileName = `raport_${groupNameOnly}_${day}_${monthStr}`;
+      if (side === 'right') fileName += "_Completed"; 
+      else fileName += "_Left";
+      
+      saveAs(new Blob([outBuf]), fileName + ".xlsx");
+      showToast("✅ Файл успішно збережено!");
+      
+      if (side === 'right') resetFile();
+
+  } catch (e) {
+      console.error(e);
+      alert("Помилка: " + e.message);
+  }
+}
+
+function sendToDept() {
+    if(!currentDept) { showToast("⚠️ Спочатку оберіть відділення!"); return; }
+    
+    const email = deptEmails[currentDept];
+    const subject = `Рапортичка: ${currentGroup.name}`;
+    const body = `Доброго дня!\n\nНадсилаю рапортичку групи ${currentGroup.name} за ${document.getElementById('dayInput').value}-е число.\n(Файл рапортички прикріплено до цього листа).`;
+    
+    window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    showToast(`📧 Відкриваю пошту для ${currentDept}...`);
+}
+</script>
+</body>
+</html>
